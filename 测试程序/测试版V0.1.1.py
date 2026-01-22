@@ -6,7 +6,7 @@ print("WX：TangTangMei18")
 print("=" * 50)
 print(" ")
 
-time.sleep(5) # 延时2秒
+time.sleep(5) # 延时5秒
 
 import openpyxl
 from openpyxl import load_workbook
@@ -776,4 +776,5 @@ def main():
     calculator.run()
 
 if __name__ == "__main__":
+
     main()
