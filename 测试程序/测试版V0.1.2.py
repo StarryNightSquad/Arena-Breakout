@@ -6,7 +6,7 @@ print("WX：TangTangMei18")
 print("=" * 50)
 print(" ")
 
-time.sleep(5) # 延时5秒
+time.sleep(5) # 延时2秒
 
 import openpyxl
 from openpyxl import load_workbook
@@ -395,14 +395,17 @@ class ArmorPenetrationCalculator:
             closest_k = min(self.penetration_data.keys(), key=lambda x: abs(x - k_value_int))
             return self.penetration_data[closest_k]
     
-    def calculate_damage(self, weapon, barrel, ammo, armor, current_durability):
+    def calculate_damage(self, weapon, barrel, ammo, armor, current_durability, current_max_durability=None):
         """计算伤害"""
+        if current_max_durability is None:
+            current_max_durability = armor['durability']
+            
         # 检查击穿状态
         can_penetrate, penetration_type = self.check_penetration_status(
             ammo['penetration_level'],
             armor['level'],
             current_durability,
-            armor['durability']
+            current_max_durability
         )
         
         # 计算护甲损伤（精确到小数点后两位）
@@ -420,7 +423,8 @@ class ArmorPenetrationCalculator:
                 'damage': Decimal('0'),
                 'armor_damage_dealt': armor_damage,
                 'remaining_durability': new_durability,
-                'is_destroyed': new_durability <= Decimal('0')
+                'is_destroyed': new_durability <= Decimal('0'),
+                'current_max_durability': current_max_durability  # 保存当前上限
             }
         
         # 如果可以击穿，计算详细伤害
@@ -442,7 +446,8 @@ class ArmorPenetrationCalculator:
             'damage': damage,
             'armor_damage_dealt': armor_damage,
             'remaining_durability': new_durability,
-            'is_destroyed': new_durability <= Decimal('0')
+            'is_destroyed': new_durability <= Decimal('0'),
+            'current_max_durability': current_max_durability  # 保存当前上限
         }
     
     def select_weapon(self):
@@ -588,11 +593,106 @@ class ArmorPenetrationCalculator:
                 choice = int(input(f"\n请选择护甲 (1-{len(armors)}): "))
                 if 1 <= choice <= len(armors):
                     selected_armor = armors[choice-1]
-                    return selected_armor
+                    break
                 else:
                     print("输入无效，请重新选择。")
             except ValueError:
                 print("请输入数字。")
+        
+        # 设置护甲当前上限和当前耐久
+        print("\n" + "=" * 50)
+        print("护甲耐久设置")
+        print("=" * 50)
+        print(f"护甲: {selected_armor['name']}")
+        print(f"初始耐久上限: {selected_armor['durability']:.1f}")
+        
+        # 询问是否设置自定义耐久
+        while True:
+            custom_input = input(f"\n是否设置自定义耐久？(Y/N, 输入N则使用初始耐久上限和耐久): ").strip().upper()
+            if custom_input == 'Y':
+                # 设置当前上限
+                while True:
+                    try:
+                        max_input = input(f"\n请输入当前护甲上限 (最多一位小数, 0-{selected_armor['durability']:.1f}): ").strip()
+                        
+                        # 检查输入格式
+                        if not max_input.replace('.', '').isdigit():
+                            print("输入必须为数字，请重新输入。")
+                            continue
+                        
+                        # 检查小数位数
+                        if '.' in max_input:
+                            decimal_parts = max_input.split('.')
+                            if len(decimal_parts) > 2:
+                                print("输入格式错误，请重新输入。")
+                                continue
+                            if len(decimal_parts[1]) > 1:
+                                print("最多允许一位小数，请重新输入。")
+                                continue
+                        
+                        max_durability = Decimal(max_input)
+                        
+                        if Decimal('0') <= max_durability <= selected_armor['durability']:
+                            current_max_durability = max_durability
+                            break
+                        else:
+                            print(f"当前上限必须在0-{selected_armor['durability']:.1f}之间，请重新输入。")
+                    except Exception as e:
+                        print(f"输入无效: {e}，请重新输入。")
+                
+                # 设置当前耐久
+                while True:
+                    try:
+                        durability_input = input(f"\n请输入当前护甲耐久 (最多一位小数, 0-{current_max_durability:.1f}): ").strip()
+                        
+                        # 检查输入格式
+                        if not durability_input.replace('.', '').isdigit():
+                            print("输入必须为数字，请重新输入。")
+                            continue
+                        
+                        # 检查小数位数
+                        if '.' in durability_input:
+                            decimal_parts = durability_input.split('.')
+                            if len(decimal_parts) > 2:
+                                print("输入格式错误，请重新输入。")
+                                continue
+                            if len(decimal_parts[1]) > 1:
+                                print("最多允许一位小数，请重新输入。")
+                                continue
+                        
+                        current_durability = Decimal(durability_input)
+                        
+                        if Decimal('0') <= current_durability <= current_max_durability:
+                            break
+                        else:
+                            print(f"当前耐久必须在0-{current_max_durability:.1f}之间，请重新输入。")
+                    except Exception as e:
+                        print(f"输入无效: {e}，请重新输入。")
+                
+                break
+            elif custom_input == 'N':
+                # 使用初始值
+                current_max_durability = selected_armor['durability']
+                current_durability = selected_armor['durability']
+                print(f"使用初始耐久上限: {current_max_durability:.1f}")
+                print(f"使用初始耐久: {current_durability:.1f}")
+                break
+            else:
+                print("输入无效，请输入 Y 或 N。")
+        
+        # 将设置的值添加到护甲数据中
+        selected_armor['current_max_durability'] = current_max_durability
+        selected_armor['current_durability'] = current_durability
+        
+        # 显示设置完成信息
+        print(f"\n设置完成:")
+        print(f"当前护甲上限: {current_max_durability:.1f}")
+        print(f"当前护甲耐久: {current_durability:.1f}")
+        if current_max_durability > Decimal('0'):
+            durability_ratio = (current_durability / current_max_durability).quantize(Decimal('0.0001'), rounding=ROUND_HALF_UP)
+            print(f"耐久比例: {durability_ratio:.2%}")
+        
+        return selected_armor
     
     def simulate_shooting(self):
         """模拟射击直到护甲被击毁"""
@@ -614,6 +714,10 @@ class ArmorPenetrationCalculator:
         
         armor = self.select_armor()
         
+        # 获取用户设置的当前上限和当前耐久，如果没有设置则使用初始值
+        current_max_durability = armor.get('current_max_durability', armor['durability'])
+        current_durability = armor.get('current_durability', armor['durability'])
+        
         # 显示初始信息
         print("\n" + "=" * 50)
         print("模拟开始")
@@ -625,13 +729,18 @@ class ArmorPenetrationCalculator:
         # 显示弹药原始口径
         ammo_display_caliber = ammo.get('original_caliber', ammo['caliber'])
         print(f"弹药: {ammo['name']} ({ammo_display_caliber}, 穿透等级: {ammo['penetration_level']})")
-        print(f"护甲: {armor['name']} (防护等级: {armor['level']}, 初始耐久: {armor['durability']:.1f})")
+        print(f"护甲: {armor['name']} (防护等级: {armor['level']})")
+        print(f"初始耐久上限: {armor['durability']:.1f}")
+        print(f"当前耐久上限: {current_max_durability:.1f}")
+        print(f"当前耐久: {current_durability:.1f}")
+        if current_max_durability > Decimal('0'):
+            durability_ratio = (current_durability / current_max_durability).quantize(Decimal('0.0001'), rounding=ROUND_HALF_UP)
+            print(f"当前耐久比例: {durability_ratio:.2%}")
         print("=" * 50)
         
         # 模拟射击
         round_num = 1
-        current_durability = armor['durability']
-        initial_durability = armor['durability']
+        initial_max_durability = current_max_durability
         
         # 记录击穿状态
         first_probable_hit = None  # 第一次概率击穿的轮次
@@ -641,7 +750,7 @@ class ArmorPenetrationCalculator:
         # 先进行完整模拟，记录所有结果
         while current_durability > Decimal('0'):
             # 计算本轮伤害
-            result = self.calculate_damage(weapon, barrel, ammo, armor, current_durability)
+            result = self.calculate_damage(weapon, barrel, ammo, armor, current_durability, current_max_durability)
             
             # 记录结果
             simulation_history.append({
@@ -651,7 +760,8 @@ class ArmorPenetrationCalculator:
                 'remaining_durability': result['remaining_durability'],
                 'armor_damage_dealt': result['armor_damage_dealt'],
                 'can_penetrate': result['can_penetrate'],
-                'current_durability_before': current_durability
+                'current_durability_before': current_durability,
+                'current_max_durability': current_max_durability
             })
             
             # 检查是否是第一次概率击穿
@@ -707,7 +817,12 @@ class ArmorPenetrationCalculator:
                             print(f"造成{result['damage']:.2f}伤害")  # 伤害输出保留两位小数
                         
                         # 输出剩余护甲耐久（输出保留一位小数）
-                        print(f"剩余护甲耐久：{result['remaining_durability']:.1f}/{initial_durability:.1f}")
+                        print(f"剩余护甲耐久：{result['remaining_durability']:.1f}/{result['current_max_durability']:.1f}")
+                        
+                        # 显示耐久比例
+                        if result['current_max_durability'] > Decimal('0'):
+                            durability_ratio = (result['remaining_durability'] / result['current_max_durability']).quantize(Decimal('0.0001'), rounding=ROUND_HALF_UP)
+                            print(f"耐久比例：{durability_ratio:.2%}")
                     else:
                         # 最后一轮，护甲被击毁
                         print(f"\n第{result['round']}轮射击")
@@ -716,7 +831,13 @@ class ArmorPenetrationCalculator:
                         if result['can_penetrate'] and result['damage'] > Decimal('0'):
                             print(f"造成{result['damage']:.2f}伤害")
                         
-                        print(f"剩余护甲耐久：{result['remaining_durability']:.1f}/{initial_durability:.1f}")
+                        print(f"剩余护甲耐久：{result['remaining_durability']:.1f}/{result['current_max_durability']:.1f}")
+                        
+                        # 显示耐久比例
+                        if result['current_max_durability'] > Decimal('0'):
+                            durability_ratio = (result['remaining_durability'] / result['current_max_durability']).quantize(Decimal('0.0001'), rounding=ROUND_HALF_UP)
+                            print(f"耐久比例：{durability_ratio:.2%}")
+                        
                         print("护甲被彻底击毁！")
                 
                 break
@@ -752,6 +873,9 @@ class ArmorPenetrationCalculator:
         print("2. 子弹穿透等级＜护甲等级：根据护甲耐久计算")
         print("3. 护甲耐久减半时，必定能被更低一级的子弹击穿")
         print("=" * 50)
+        print("耐久比例计算：当前耐久/当前上限")
+        print("如未设置自定义耐久，则使用初始耐久上限")
+        print("=" * 50)
         
         # 直接开始模拟射击
         continue_simulation = True
@@ -776,5 +900,4 @@ def main():
     calculator.run()
 
 if __name__ == "__main__":
-
     main()
