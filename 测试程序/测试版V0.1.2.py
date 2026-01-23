@@ -177,9 +177,12 @@ class ArmorPenetrationCalculator:
             
             ammo_id = 0
             current_caliber = None
+            current_original_caliber = None  # 用于保存当前口径的原始值
             
             for row in ws.iter_rows(min_row=3, values_only=True):
                 if row[0]:  # 新口径
+                    # 保存原始口径
+                    current_original_caliber = row[0]
                     # 标准化口径
                     current_caliber = self.standardize_caliber(row[0])
                     if current_caliber not in self.ammo_by_caliber:
@@ -218,7 +221,7 @@ class ArmorPenetrationCalculator:
                     ammo = {
                         'id': ammo_id,
                         'caliber': current_caliber,
-                        'original_caliber': row[0],  # 保存原始口径用于显示
+                        'original_caliber': current_original_caliber if current_original_caliber else current_caliber,  # 修复：如果原始口径为None，使用标准化口径
                         'name': row[1],
                         'damage': self.parse_damage_value(row[2]),
                         'armor_damage': Decimal(str(row[3])) if row[3] else Decimal('0'),
@@ -726,8 +729,10 @@ class ArmorPenetrationCalculator:
         weapon_display_caliber = weapon.get('original_caliber', weapon['caliber'])
         print(f"武器: {weapon['name']} ({weapon_display_caliber})")
         print(f"枪管: {barrel['name']}")
-        # 显示弹药原始口径
+        # 显示弹药原始口径 - 确保有正确的值
         ammo_display_caliber = ammo.get('original_caliber', ammo['caliber'])
+        if ammo_display_caliber is None:
+            ammo_display_caliber = ammo['caliber']
         print(f"弹药: {ammo['name']} ({ammo_display_caliber}, 穿透等级: {ammo['penetration_level']})")
         print(f"护甲: {armor['name']} (防护等级: {armor['level']})")
         print(f"初始耐久上限: {armor['durability']:.1f}")
@@ -901,3 +906,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
