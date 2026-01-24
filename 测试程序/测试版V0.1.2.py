@@ -41,7 +41,7 @@ class ArmorPenetrationCalculator:
         self.armor_data = {}
         self.load_armor_data()
         
-        print("数据加载完成！\n")
+        print("数据加载完成\n")
     
     def standardize_caliber(self, caliber_str):
         """标准化口径字符串，使其能够正确匹配"""
@@ -529,7 +529,7 @@ class ArmorPenetrationCalculator:
         
         if standardized_caliber not in self.ammo_by_caliber:
             # 尝试查找所有可能匹配的口径
-            print(f"警告: 未找到标准化口径 '{standardized_caliber}' 的弹药数据！")
+            print(f"警告: 未找到标准化口径 '{standardized_caliber}' 的弹药数据")
             print(f"可用口径: {', '.join(self.ammo_by_caliber.keys())}")
             
             # 尝试查找相似口径
@@ -544,7 +544,7 @@ class ArmorPenetrationCalculator:
                 standardized_caliber = matching_calibers[0]
                 print(f"自动选择: {standardized_caliber}")
             else:
-                print("无法找到匹配的口径弹药！")
+                print("无法找到匹配的口径弹药")
                 return None
         
         ammo_list = self.ammo_by_caliber[standardized_caliber]
@@ -801,7 +801,7 @@ class ArmorPenetrationCalculator:
         else:
             print("稳定击穿所需命中数：未出现稳定击穿")
         
-        print(f"护甲在第{round_num}轮被彻底击毁！")
+        print(f"护甲在第{round_num}轮被彻底击毁")
         
         # 询问是否显示详细计算过程
         print("\n" + "=" * 50)
@@ -843,7 +843,7 @@ class ArmorPenetrationCalculator:
                             durability_ratio = (result['remaining_durability'] / result['current_max_durability']).quantize(Decimal('0.0001'), rounding=ROUND_HALF_UP)
                             print(f"耐久比例：{durability_ratio:.2%}")
                         
-                        print("护甲被彻底击毁！")
+                        print("护甲被彻底击毁")
                 
                 break
             elif show_details == 'N':
@@ -906,4 +906,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
