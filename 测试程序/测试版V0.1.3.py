@@ -6,7 +6,7 @@ print("WX：TangTangMei18")
 print("=" * 50)
 print(" ")
 
-time.sleep(5) # 延时2秒
+time.sleep(5) # 延时5秒
 
 import openpyxl
 from openpyxl import load_workbook
@@ -41,7 +41,7 @@ class ArmorPenetrationCalculator:
         self.armor_data = {}
         self.load_armor_data()
         
-        print("数据加载完成\n")
+        print("数据加载完成！\n")
     
     def standardize_caliber(self, caliber_str):
         """标准化口径字符串，使其能够正确匹配"""
@@ -273,6 +273,9 @@ class ArmorPenetrationCalculator:
                 if row[0] and row[1]:  # 护甲名称和等级
                     armor_id += 1
                     
+                    # 解析材质信息（C列，索引2）
+                    material = row[2] if row[2] else "未知材质"
+                    
                     # 解析耐久值
                     durability = Decimal('0')
                     if row[3]:
@@ -312,6 +315,7 @@ class ArmorPenetrationCalculator:
                         'id': armor_id,
                         'name': row[0],
                         'level': int(row[1]),
+                        'material': material,  # 添加材质信息
                         'durability': durability,
                         'destruction_coef': destruction_coef,
                         'current_durability': durability  # 初始时当前耐久等于总耐久
@@ -529,7 +533,7 @@ class ArmorPenetrationCalculator:
         
         if standardized_caliber not in self.ammo_by_caliber:
             # 尝试查找所有可能匹配的口径
-            print(f"警告: 未找到标准化口径 '{standardized_caliber}' 的弹药数据")
+            print(f"警告: 未找到标准化口径 '{standardized_caliber}' 的弹药数据！")
             print(f"可用口径: {', '.join(self.ammo_by_caliber.keys())}")
             
             # 尝试查找相似口径
@@ -544,7 +548,7 @@ class ArmorPenetrationCalculator:
                 standardized_caliber = matching_calibers[0]
                 print(f"自动选择: {standardized_caliber}")
             else:
-                print("无法找到匹配的口径弹药")
+                print("无法找到匹配的口径弹药！")
                 return None
         
         ammo_list = self.ammo_by_caliber[standardized_caliber]
@@ -588,8 +592,10 @@ class ArmorPenetrationCalculator:
         print(f"\n防护等级 {level} 的护甲:")
         armors = self.armor_by_level[level]
         
+        # 显示护甲列表，包括材质信息
         for i, armor in enumerate(armors, 1):
-            print(f"{i}. {armor['name']} - 耐久: {armor['durability']:.1f}")
+            material = armor.get('material', '未知材质')
+            print(f"{i}. {armor['name']} - 材质: {material} - 耐久: {armor['durability']:.1f}")
         
         while True:
             try:
@@ -607,6 +613,7 @@ class ArmorPenetrationCalculator:
         print("护甲耐久设置")
         print("=" * 50)
         print(f"护甲: {selected_armor['name']}")
+        print(f"材质: {selected_armor.get('material', '未知材质')}")
         print(f"初始耐久上限: {selected_armor['durability']:.1f}")
         
         # 询问是否设置自定义耐久
@@ -734,7 +741,7 @@ class ArmorPenetrationCalculator:
         if ammo_display_caliber is None:
             ammo_display_caliber = ammo['caliber']
         print(f"弹药: {ammo['name']} ({ammo_display_caliber}, 穿透等级: {ammo['penetration_level']})")
-        print(f"护甲: {armor['name']} (防护等级: {armor['level']})")
+        print(f"护甲: {armor['name']} - 材质: {armor.get('material', '未知材质')} (防护等级: {armor['level']})")
         print(f"初始耐久上限: {armor['durability']:.1f}")
         print(f"当前耐久上限: {current_max_durability:.1f}")
         print(f"当前耐久: {current_durability:.1f}")
@@ -801,7 +808,7 @@ class ArmorPenetrationCalculator:
         else:
             print("稳定击穿所需命中数：未出现稳定击穿")
         
-        print(f"护甲在第{round_num}轮被彻底击毁")
+        print(f"护甲在第{round_num}轮被彻底击毁！")
         
         # 询问是否显示详细计算过程
         print("\n" + "=" * 50)
@@ -843,7 +850,7 @@ class ArmorPenetrationCalculator:
                             durability_ratio = (result['remaining_durability'] / result['current_max_durability']).quantize(Decimal('0.0001'), rounding=ROUND_HALF_UP)
                             print(f"耐久比例：{durability_ratio:.2%}")
                         
-                        print("护甲被彻底击毁")
+                        print("护甲被彻底击毁！")
                 
                 break
             elif show_details == 'N':
@@ -906,5 +913,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
